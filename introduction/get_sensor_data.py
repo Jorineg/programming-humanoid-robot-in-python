@@ -22,6 +22,11 @@ class MyAgent(SparkAgent):
         # YOUR CODE HERE
         # get angle and temperature to current data of joint HeadYaw
 
+        joint_name_to_get = "HeadYaw"
+        angle = perception.joint[joint_name_to_get]
+        temperature = perception.joint_temperature[joint_name_to_get]
+        
+
         print('HeadYaw angle: ' + str(angle) + ' temperature: ' + str(temperature))
         return super(MyAgent, self).think(perception)
 
