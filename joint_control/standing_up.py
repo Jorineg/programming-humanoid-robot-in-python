@@ -7,7 +7,7 @@
 
 
 from recognize_posture import PostureRecognitionAgent
-
+from keyframes import leftBackToStand, leftBellyToStand
 
 class StandingUpAgent(PostureRecognitionAgent):
     def think(self, perception):
@@ -17,6 +17,20 @@ class StandingUpAgent(PostureRecognitionAgent):
     def standing_up(self):
         posture = self.posture
         # YOUR CODE HERE
+
+        move_for_posture = {
+            "Back": leftBackToStand,
+            "Belly": leftBellyToStand
+        }
+
+        move = move_for_posture.get(posture, None)
+
+        if move != None:
+            self.keyframes = move()
+
+
+
+        
 
 
 class TestStandingUpAgent(StandingUpAgent):

@@ -21,7 +21,9 @@
 
 
 from pid import PIDAgent
-from keyframes import hello
+from keyframes import hello, leftBackToStand, rightBackToStand, leftBellyToStand, rightBellyToStand, wipe_forehead
+from scipy.interpolate import PchipInterpolator
+import numpy as np
 
 
 class AngleInterpolationAgent(PIDAgent):
@@ -32,20 +34,38 @@ class AngleInterpolationAgent(PIDAgent):
                  sync_mode=True):
         super(AngleInterpolationAgent, self).__init__(simspark_ip, simspark_port, teamname, player_id, sync_mode)
         self.keyframes = ([], [], [])
+        self.start_time=-1
 
     def think(self, perception):
         target_joints = self.angle_interpolation(self.keyframes, perception)
-        target_joints['RHipYawPitch'] = target_joints['LHipYawPitch'] # copy missing joint in keyframes
+        
+        # crashes otherwise sometimes...
+        if 'LHipYawPitch' in target_joints:
+            target_joints['RHipYawPitch'] = target_joints['LHipYawPitch'] # copy missing joint in keyframes
+        
         self.target_joints.update(target_joints)
         return super(AngleInterpolationAgent, self).think(perception)
 
     def angle_interpolation(self, keyframes, perception):
         target_joints = {}
         # YOUR CODE HERE
+        if self.start_time == -1:
+            self.start_time = perception.time
+
+        names, times, keys = keyframes
+        for joint_name, times, keys in zip(names, times, keys):
+            x_data = times
+            y_data = [x[0] for x in keys]
+            f = PchipInterpolator(x_data, y_data, extrapolate=True)
+            
+            evaluate_at = (perception.time-self.start_time)*1
+            if evaluate_at>times[-1]: evaluate_at = times[-1]
+            # print(x_data[0], x_data[-1], evaluate_at, f(evaluate_at))
+            target_joints[joint_name] = f(evaluate_at)
 
         return target_joints
 
 if __name__ == '__main__':
     agent = AngleInterpolationAgent()
-    agent.keyframes = hello()  # CHANGE DIFFERENT KEYFRAMES
+    agent.keyframes = leftBackToStand()  # CHANGE DIFFERENT KEYFRAMES
     agent.run()

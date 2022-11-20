@@ -35,8 +35,8 @@ class PIDController(object):
         self.e2 = np.zeros(size)
         # ADJUST PARAMETERS BELOW
         delay = 0
-        self.Kp = 0
-        self.Ki = 0
+        self.Kp = 15
+        self.Ki = 1
         self.Kd = 0
         self.y = deque(np.zeros(size), maxlen=delay + 1)
 
@@ -54,6 +54,18 @@ class PIDController(object):
         '''
         # YOUR CODE HERE
 
+        self.y.append(sensor)
+
+        values = self.y[0]
+
+        self.u += ((self.Kp + self.Ki*self.dt + self.Kd/self.dt)*(target-values) 
+            - (self.Kp + 2*self.Kd/self.dt)*self.e1
+            + self.Kd/self.dt*self.e2)
+        
+        self.e2 = self.e1
+        self.e1 = (target-values)
+
+
         return self.u
 
 
@@ -64,10 +76,13 @@ class PIDAgent(SparkAgent):
                  player_id=0,
                  sync_mode=True):
         super(PIDAgent, self).__init__(simspark_ip, simspark_port, teamname, player_id, sync_mode)
+
         self.joint_names = JOINT_CMD_NAMES.keys()
         number_of_joints = len(self.joint_names)
         self.joint_controller = PIDController(dt=0.01, size=number_of_joints)
         self.target_joints = {k: 0 for k in self.joint_names}
+
+
 
     def think(self, perception):
         action = super(PIDAgent, self).think(perception)
