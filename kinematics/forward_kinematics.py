@@ -19,6 +19,10 @@
 # add PYTHONPATH
 import os
 import sys
+import numpy as np
+
+from scipy.spatial.transform import Rotation as R
+
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'joint_control'))
 
 from numpy.matlib import matrix, identity
@@ -36,8 +40,11 @@ class ForwardKinematicsAgent(PostureRecognitionAgent):
         self.transforms = {n: identity(4) for n in self.joint_names}
 
         # chains defines the name of chain and joints of the chain
-        self.chains = {'Head': ['HeadYaw', 'HeadPitch']
-                       # YOUR CODE HERE
+        self.chains = {'Head': ['HeadYaw', 'HeadPitch'],
+                       'LArm': ['LShoulderPitch', 'LShoulderRoll', 'LElbowYaw', 'LElbowRoll'],
+                       'LLeg': ['LHipYawPitch', 'LHipRoll', 'LHipPitch', 'LKneePitch', 'LAnklePitch', 'RAnkleRoll'],
+                       'RLeg': ['RHipYawPitch', 'RHipRoll', 'RHipPitch', 'RKneePitch', 'RAnklePitch', 'LAnkleRoll' ],
+                       'RArm': ['RShoulderPitch', 'RShoulderRoll', 'RElbowYaw', 'RElbowRoll'],
                        }
 
     def think(self, perception):
@@ -52,8 +59,44 @@ class ForwardKinematicsAgent(PostureRecognitionAgent):
         :return: transformation
         :rtype: 4x4 matrix
         '''
-        T = identity(4)
-        # YOUR CODE HERE
+
+        partsData = {
+            'HeadYaw': ([0, 0, .1265], [0, 0, 1]),
+            'HeadPitch': ([0, 0, 0], [0, 1, 0]),
+            'ShoulderPitch': ([0, .098, .1], [0, 1, 0]),
+            'ShoulderRoll': ([0, 0, 1], [0, 0, 1]),
+            'ElbowYaw': ([.105, .015, 0], [1, 0, 0]),
+            'ElbowRoll': ([0, 0, 0], [0, 0, 1]),
+            'HipYawPitch': ([0, .05, -.085], [0, 1, 1]), # ???
+            'HipRoll': ([0, 0, 0], [1, 0, 0]),
+            'HipPitch': ([0, 0, 0], [0, 1, 0]),
+            'KneePitch': ([0, 0, -.1], [0, 1, 0]),
+            'AnklePitch': ([0,  0, -.1029], [0, 1, 0]),
+            'AnkleRoll': ([0, 0, 0], [1, 0, 0]),
+        }
+
+        def transformation_matrix(x, y, z, angles):
+            '''create a 3D transformation'''            
+            rot = R.from_rotvec(angles).as_matrix()
+            m = np.append(rot, [[0,0,0]], 0)
+            m = np.append(m, [[x], [y], [z], [1]], 1)
+            return m
+
+        side = joint_name[0]
+        multiplier = 1
+        name = joint_name
+        if side == 'R':
+            multiplier = -1
+            name = joint_name[1:]
+        elif side == 'L':
+            name = joint_name[1:]
+
+        transpose, rotate = partsData[name]
+        transpose[1] *= multiplier
+        rotate = np.array(rotate)
+        rotate = rotate * joint_angle
+
+        T = transformation_matrix(*transpose, rotate)
 
         return T
 
@@ -67,9 +110,9 @@ class ForwardKinematicsAgent(PostureRecognitionAgent):
             for joint in chain_joints:
                 angle = joints[joint]
                 Tl = self.local_trans(joint, angle)
-                # YOUR CODE HERE
-
+                T = T * Tl
                 self.transforms[joint] = T
+        print(self.transforms)
 
 if __name__ == '__main__':
     agent = ForwardKinematicsAgent()
