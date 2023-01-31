@@ -47,20 +47,7 @@ class ForwardKinematicsAgent(PostureRecognitionAgent):
                        'RArm': ['RShoulderPitch', 'RShoulderRoll', 'RElbowYaw', 'RElbowRoll'],
                        }
 
-    def think(self, perception):
-        self.forward_kinematics(perception.joint)
-        return super(ForwardKinematicsAgent, self).think(perception)
-
-    def local_trans(self, joint_name, joint_angle):
-        '''calculate local transformation of one joint
-
-        :param str joint_name: the name of joint
-        :param float joint_angle: the angle of joint in radians
-        :return: transformation
-        :rtype: 4x4 matrix
-        '''
-
-        partsData = {
+        self.partsData = {
             'HeadYaw': ([0, 0, .1265], [0, 0, 1]),
             'HeadPitch': ([0, 0, 0], [0, 1, 0]),
             'ShoulderPitch': ([0, .098, .1], [0, 1, 0]),
@@ -74,6 +61,20 @@ class ForwardKinematicsAgent(PostureRecognitionAgent):
             'AnklePitch': ([0,  0, -.1029], [0, 1, 0]),
             'AnkleRoll': ([0, 0, 0], [1, 0, 0]),
         }
+
+    def think(self, perception):
+        self.forward_kinematics(perception.joint)
+        return super(ForwardKinematicsAgent, self).think(perception)
+
+    def local_trans(self, joint_name, joint_angle):
+        '''calculate local transformation of one joint
+
+        :param str joint_name: the name of joint
+        :param float joint_angle: the angle of joint in radians
+        :return: transformation
+        :rtype: 4x4 matrix
+        '''
+
 
         def transformation_matrix(x, y, z, angles):
             '''create a 3D transformation'''            
@@ -91,7 +92,7 @@ class ForwardKinematicsAgent(PostureRecognitionAgent):
         elif side == 'L':
             name = joint_name[1:]
 
-        transpose, rotate = partsData[name]
+        transpose, rotate = self.partsData[name]
         transpose[1] *= multiplier
         rotate = np.array(rotate)
         rotate = rotate * joint_angle
@@ -112,7 +113,7 @@ class ForwardKinematicsAgent(PostureRecognitionAgent):
                 Tl = self.local_trans(joint, angle)
                 T = T * Tl
                 self.transforms[joint] = T
-        print(self.transforms)
+        # print(self.transforms)
 
 if __name__ == '__main__':
     agent = ForwardKinematicsAgent()
